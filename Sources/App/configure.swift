@@ -7,8 +7,15 @@ import JWT
 public func configure(_ app: Application) async throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-
-    app.databases.use(.postgres(hostname: Environment.get("DB_HOST_NAME") ?? "localhost", username: Environment.get("DB_USER_NAME") ?? "postgres", password: Environment.get("DB_PASSWORD") ?? "", database: Environment.get("DB_NAME") ?? "adriciadb"), as: .psql)
+    
+    
+    if let databaseURL = Environment.get("DATABASE_URL"), var postgresConfig = PostgresConfiguration(url: databaseURL) {
+        postgresConfig.tlsConfiguration = .makeClientConfiguration()
+        postgresConfig.tlsConfiguration?.certificateVerification = .none
+        app.databases.use(.postgres(configuration: postgresConfig), as: .psql)
+    } else {
+        app.databases.use(.postgres(hostname: Environment.get("DB_HOST_NAME") ?? "localhost" , username: Environment.get("DB_USER_NAME") ?? "postgres", password: Environment.get("DB_PASSWORD") ?? "", database: Environment.get("DB_NAME") ?? "adriciadb"), as: .psql)
+    }
     
     // register migrations
     app.migrations.add(CreateUsersTableMigration())
